@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Smart Commute — Pune</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#060e1a; --surf:#0b1625; --card:#0f1d2e; --card2:#132234;
+      --b:rgba(255,255,255,0.07); --b2:rgba(255,255,255,0.13);
+      --t:#d8e8f5; --m:#587490;
+      --g:#10b981; --y:#f59e0b; --r:#ef4444;
+      --bl:#38bdf8; --pu:#a78bfa; --ac:#00e5ff;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html,body { height:100%; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--t); overflow:hidden; }
+    #app { display:grid; grid-template-columns:370px 1fr; height:100vh; }
+
+    /* ── Sidebar ── */
+    #side { background:var(--surf); border-right:1px solid var(--b); display:flex; flex-direction:column; overflow:hidden; }
+    #sh { padding:15px 17px 12px; border-bottom:1px solid var(--b); background:var(--bg); flex-shrink:0; }
+    .badge { display:inline-flex; align-items:center; gap:5px; font-size:9px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--g); background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.2); padding:2px 8px; border-radius:20px; margin-bottom:6px; }
+    .puls { width:5px; height:5px; background:var(--g); border-radius:50%; animation:pk 1.4s infinite; }
+    @keyframes pk { 0%,100%{opacity:1} 50%{opacity:.25} }
+    #sh h1 { font-size:15px; font-weight:800; color:#fff; }
+    #sh p { font-size:10px; color:var(--m); margin-top:2px; }
+
+    #sb { flex:1; overflow-y:auto; padding:13px; display:flex; flex-direction:column; gap:10px; }
+    #sb::-webkit-scrollbar { width:3px; }
+    #sb::-webkit-scrollbar-thumb { background:rgba(255,255,255,.08); border-radius:2px; }
+
+    .sl { font-size:9px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--m); margin-bottom:5px; }
+    .sep { border-top:1px solid var(--b); }
+
+    /* network stats */
+    #nst { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+    .ns { background:var(--card); border:1px solid var(--b); border-radius:8px; padding:7px 9px; text-align:center; }
+    .ns .v { font-size:14px; font-weight:800; color:#fff; }
+    .ns .l { font-size:8.5px; color:var(--m); margin-top:2px; }
+
+    /* progress */
+    #progw { display:none; margin-top:5px; }
+    #progb { height:3px; background:rgba(255,255,255,.07); border-radius:2px; overflow:hidden; }
+    #progf { height:100%; background:linear-gradient(90deg,var(--g),var(--ac)); border-radius:2px; width:0; transition:width .5s ease; }
+    #progt { font-size:9px; color:var(--m); margin-top:3px; }
+
+    /* inputs */
+    .iw { position:relative; }
+    .idot { position:absolute; left:11px; top:50%; transform:translateY(-50%); width:7px; height:7px; border-radius:50%; pointer-events:none; z-index:1; }
+    .iw input { width:100%; padding:9px 10px 9px 25px; background:var(--card); border:1px solid var(--b); border-radius:9px; color:var(--t); font-size:12.5px; font-family:inherit; outline:none; transition:border-color .18s; }
+    .iw input:focus { border-color:rgba(0,229,255,.4); }
+    .iw input::placeholder { color:var(--m); }
+    .vl { width:1px; height:12px; background:var(--b); margin:3px auto; }
+
+    /* autocomplete */
+    .acl { position:absolute; top:calc(100% + 3px); left:0; right:0; z-index:3000; background:var(--card2); border:1px solid var(--b2); border-radius:9px; overflow:hidden; box-shadow:0 16px 40px rgba(0,0,0,.7); display:none; }
+    .acl.open { display:block; }
+    .aci { padding:8px 13px; font-size:11.5px; cursor:pointer; border-bottom:1px solid var(--b); transition:background .1s; }
+    .aci:last-child { border-bottom:none; }
+    .aci:hover { background:rgba(255,255,255,.06); }
+    .an { font-weight:600; color:var(--t); }
+    .aa { color:var(--m); font-size:10px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* buttons */
+    .br { display:flex; gap:6px; }
+    .btn { flex:1; padding:10px; border-radius:9px; border:none; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .16s; display:flex; align-items:center; justify-content:center; gap:5px; }
+    .bp { background:var(--g); color:#001; }
+    .bp:hover { background:#0ea572; box-shadow:0 0 18px rgba(16,185,129,.28); }
+    .bp:disabled { opacity:.35; cursor:not-allowed; }
+    .bs { background:rgba(255,255,255,.05); color:var(--t); border:1px solid var(--b); }
+    .bs:hover { background:rgba(255,255,255,.09); }
+    .bs.on { background:rgba(0,229,255,.09); border-color:rgba(0,229,255,.35); color:var(--ac); }
+
+    /* route cards */
+    #rcards { display:flex; flex-direction:column; gap:6px; }
+    .rc { background:var(--card); border:1.5px solid var(--b); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all .16s; position:relative; overflow:hidden; }
+    .rc:hover { border-color:var(--b2); transform:translateX(2px); }
+    .rc.act { border-color:var(--ac); background:rgba(0,229,255,.025); }
+    .rc.act::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--ac); }
+    .rch { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:3px; }
+    .rtag { font-size:9px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; padding:2px 7px; border-radius:5px; }
+    .tf { background:rgba(56,189,248,.14); color:var(--bl); border:1px solid rgba(56,189,248,.28); }
+    .tb { background:rgba(16,185,129,.14); color:var(--g); border:1px solid rgba(16,185,129,.28); }
+    .ta { background:rgba(167,139,250,.14); color:var(--pu); border:1px solid rgba(167,139,250,.28); }
+    .rm { display:flex; gap:11px; margin-bottom:6px; }
+    .rs .rv { font-size:14px; font-weight:800; color:#fff; display:block; }
+    .rs .rl { font-size:8.5px; color:var(--m); }
+    .chips { display:flex; gap:4px; flex-wrap:wrap; }
+    .chip { font-size:9px; padding:2px 7px; border-radius:5px; font-weight:600; }
+    .clow { background:rgba(16,185,129,.1); color:#6ee7b7; }
+    .cmed { background:rgba(245,158,11,.1); color:#fde68a; }
+    .chi  { background:rgba(239,68,68,.1);  color:#fca5a5; }
+    .crec { background:rgba(0,229,255,.1);   color:var(--ac); }
+    .cbus { background:rgba(245,158,11,.1);  color:#fde68a; }
+    .csig { background:rgba(239,68,68,.1);   color:#fca5a5; }
+
+    /* info grid */
+    .ig { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .ic { background:var(--card); border:1px solid var(--b); border-radius:8px; padding:8px 10px; }
+    .ic .il { font-size:8.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--m); margin-bottom:2px; }
+    .ic .iv { font-size:13px; font-weight:800; color:#fff; }
+
+    /* overlays */
+    .og { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+
+    /* status bar */
+    #sbar { padding:8px 13px; font-size:10px; color:var(--m); border-top:1px solid var(--b); background:var(--bg); display:flex; align-items:center; gap:5px; min-height:32px; flex-shrink:0; }
+    .spin { width:10px; height:10px; border-radius:50%; border:2px solid rgba(0,229,255,.15); border-top-color:var(--ac); animation:sp .7s linear infinite; display:none; flex-shrink:0; }
+    @keyframes sp { to { transform:rotate(360deg); } }
+
+    /* map */
+    #mwrap { position:relative; }
+    #map { width:100%; height:100%; }
+
+    /* loading overlay */
+    #lscr { position:absolute; inset:0; background:rgba(6,14,26,.96); backdrop-filter:blur(6px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1000; gap:10px; }
+    .lring { width:46px; height:46px; border-radius:50%; border:3px solid rgba(0,229,255,.12); border-top-color:var(--ac); animation:sp .8s linear infinite; }
+    .ltitle { font-size:13px; font-weight:700; color:var(--ac); letter-spacing:.05em; }
+    #lmsg { font-size:10px; color:var(--m); text-align:center; max-width:260px; line-height:1.5; }
+    #lbar { width:220px; height:3px; background:rgba(255,255,255,.07); border-radius:2px; overflow:hidden; margin-top:2px; }
+    #lfill { height:100%; background:linear-gradient(90deg,var(--g),var(--ac)); border-radius:2px; width:0; transition:width .5s ease; }
+
+    /* legend */
+    #leg { position:absolute; bottom:14px; right:14px; z-index:900; background:rgba(6,14,26,.92); backdrop-filter:blur(8px); border:1px solid var(--b); border-radius:10px; padding:10px 12px; font-size:10px; color:var(--m); min-width:178px; }
+    .lgt { font-size:8px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--m); margin-bottom:7px; }
+    .lr { display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+    .lr:last-child { margin-bottom:0; }
+    .ll { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
+    .ld { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+    /* error */
+    .err { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); color:#fca5a5; font-size:11px; padding:8px 10px; border-radius:8px; display:none; }
+    .hidden { display:none !important; }
+
+    /* leaflet overrides */
+    .leaflet-tooltip { background:var(--card2) !important; border:1px solid var(--b2) !important; color:var(--t) !important; font-size:10.5px !important; font-family:'DM Sans',sans-serif !important; border-radius:7px !important; box-shadow:0 8px 24px rgba(0,0,0,.6) !important; padding:5px 9px !important; }
+    .leaflet-tooltip-top::before { border-top-color:var(--b2) !important; }
+    .leaflet-control-zoom a { background:var(--card) !important; color:var(--t) !important; border-color:var(--b) !important; }
+    .leaflet-control-zoom a:hover { background:var(--card2) !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div id="side">
+    <div id="sh">
+      <div class="badge"><span class="puls"></span>Live · Pune OSM</div>
+      <h1>Smart Commute Planner</h1>
+      <p>Real road network · OSRM routing · Overpass signals · Nominatim</p>
+    </div>
+
+    <div id="sb">
+
+      <!-- Network stats -->
+      <div>
+        <div class="sl">Pune Road Network</div>
+        <div id="nst">
+          <div class="ns"><div class="v" id="ns-r">…</div><div class="l">Road segments</div></div>
+          <div class="ns"><div class="v" id="ns-s">…</div><div class="l">Signals</div></div>
+          <div class="ns"><div class="v" id="ns-b">…</div><div class="l">Bus stops</div></div>
+        </div>
+        <div id="progw">
+          <div id="progb"><div id="progf"></div></div>
+          <div id="progt"></div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- Planner -->
+      <div>
+        <div class="sl">Plan Your Commute</div>
+        <div class="iw">
+          <span class="idot" style="background:#10b981"></span>
+          <input type="text" id="origin" placeholder="Origin — e.g. Shivajinagar" autocomplete="off"/>
+          <div class="acl" id="o-ac"></div>
+        </div>
+        <div class="vl"></div>
+        <div class="iw">
+          <span class="idot" style="background:#ef4444"></span>
+          <input type="text" id="dest" placeholder="Destination — e.g. Hinjewadi IT Park" autocomplete="off"/>
+          <div class="acl" id="d-ac"></div>
+        </div>
+      </div>
+
+      <div class="br">
+        <button class="btn bp" id="planBtn" onclick="APP.plan()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Plan Route
+        </button>
+        <button class="btn bs" onclick="APP.clear()">Clear</button>
+      </div>
+
+      <div id="errmsg" class="err"></div>
+
+      <!-- Route options -->
+      <div id="rsec" class="hidden">
+        <div class="sl">Route Options</div>
+        <div id="rcards"></div>
+      </div>
+
+      <!-- Route intelligence -->
+      <div id="ssec" class="hidden">
+        <div class="sl">Route Intelligence</div>
+        <div class="ig" id="ig"></div>
+      </div>
+
+      <!-- Overlays -->
+      <div id="ovsec" class="hidden">
+        <div class="sl">Map Overlays</div>
+        <div class="og">
+          <button class="btn bs on" id="btn-roads"   onclick="APP.tR()">🛣 Roads</button>
+          <button class="btn bs on" id="btn-signals" onclick="APP.tS()">🚦 Signals</button>
+          <button class="btn bs"    id="btn-bus"     onclick="APP.tB()">🚌 Bus Stops</button>
+          <button class="btn bs on" id="btn-heat"    onclick="APP.tH()">🔥 Hotspots</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="sbar">
+      <div class="spin" id="spin"></div>
+      <span id="stxt">Initialising…</span>
+    </div>
+  </div>
+
+  <!-- ══ MAP ══ -->
+  <div id="mwrap">
+    <div id="map"></div>
+
+    <div id="lscr">
+      <div class="lring"></div>
+      <div class="ltitle">Loading Pune Road Network</div>
+      <div id="lmsg">Connecting to OpenStreetMap…</div>
+      <div id="lbar"><div id="lfill"></div></div>
+    </div>
+
+    <div id="leg">
+      <div class="lgt">Map Legend</div>
+      <div class="lr"><div class="ll" style="background:#e8534a"></div><span>Motorway / Trunk</span></div>
+      <div class="lr"><div class="ll" style="background:#f0a500"></div><span>Primary roads</span></div>
+      <div class="lr"><div class="ll" style="background:#3b82f6;opacity:.7"></div><span>Secondary roads</span></div>
+      <div class="lr"><div class="ll" style="background:#38bdf8;height:5px"></div><span>Route — Fastest</span></div>
+      <div class="lr"><div class="ll" style="background:#10b981;height:5px"></div><span>Route — Balanced</span></div>
+      <div class="lr"><div class="ll" style="background:#a78bfa;height:5px"></div><span>Route — Alt</span></div>
+      <div class="lr"><div class="ld" style="background:#ff4444"></div><span>Traffic signal</span></div>
+      <div class="lr"><div class="ld" style="background:#ffd166"></div><span>Bus stop</span></div>
+      <div class="lr"><div class="ld" style="background:#ff6b35;opacity:.6"></div><span>Congestion hotspot</span></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+/* ═══════════════════════════════════════
+   STEP 1: inject Leaflet, then boot app
+═══════════════════════════════════════ */
+(function () {
+  var css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(css);
+
+  var js = document.createElement('script');
+  js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  js.onload = bootApp;
+  js.onerror = function () {
+    document.getElementById('lscr').innerHTML =
+      '<p style="color:#ef4444;padding:24px;text-align:center">Failed to load Leaflet.<br>Check your internet connection.</p>';
+  };
+  document.head.appendChild(js);
+}());
+
+/* ═══════════════════════════════════════
+   STEP 2: full app — runs after Leaflet loads
+═══════════════════════════════════════ */
+function bootApp() {
+
+  /* ── tiny DOM helper ── */
+  function G(id) { return document.getElementById(id); }
+
+  /* ── status ── */
+  function setStatus(msg, loading) {
+    G('stxt').textContent = msg;
+    G('spin').style.display = loading ? 'block' : 'none';
+  }
+  function showErr(msg) {
+    G('errmsg').textContent = msg;
+    G('errmsg').style.display = 'block';
+    setTimeout(function () { G('errmsg').style.display = 'none'; }, 8000);
+  }
+  function setProgress(pct, msg) {
+    G('progw').style.display = 'block';
+    G('progf').style.width = pct + '%';
+    G('lfill').style.width = pct + '%';
+    if (msg) { G('progt').textContent = msg; G('lmsg').textContent = msg; }
+  }
+
+  /* ── map ── */
+  var map = L.map('map', { center: [18.5204, 73.8567], zoom: 13, preferCanvas: true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OSM © CartoDB', maxZoom: 19, subdomains: 'abcd'
+  }).addTo(map);
+
+  /* ── layer groups ── */
+  var LG = {
+    mway: L.layerGroup().addTo(map),   // motorway / trunk
+    prim: L.layerGroup().addTo(map),   // primary
+    sec:  L.layerGroup().addTo(map),   // secondary
+    sigs: L.layerGroup().addTo(map),   // traffic signals
+    bus:  L.layerGroup(),              // bus stops — hidden initially
+    heat: L.layerGroup().addTo(map),   // congestion hotspots
+    rtes: L.layerGroup().addTo(map),   // planned routes
+    pins: L.layerGroup().addTo(map),   // origin / dest markers
+  };
+
+  /* ── state ── */
+  var allSig = [], allBus = [], lastRtes = [], rteLayers = [];
+  var acT = {}, showR = true, showS = true, showB = false, showH = true;
+
+  /* ── Overpass endpoint fallback chain ── */
+  var OPU = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
+
+  function opFetch(q, ms) {
+    ms = ms || 30000;
+    var idx = 0;
+    function next() {
+      if (idx >= OPU.length) return Promise.reject(new Error('All Overpass endpoints failed'));
+      var url = OPU[idx++];
+      var ctrl = new AbortController();
+      var tid = setTimeout(function () { ctrl.abort(); }, ms);
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(q),
+        signal: ctrl.signal
+      }).then(function (r) {
+        clearTimeout(tid);
+        if (!r.ok) { console.warn('Overpass ' + url + ' HTTP ' + r.status); return next(); }
+        return r.text().then(function (txt) {
+          try { return JSON.parse(txt); }
+          catch (e) { console.warn('Non-JSON from ' + url); return next(); }
+        });
+      }).catch(function (e) {
+        clearTimeout(tid);
+        console.warn('Overpass fail ' + url + ':', e.name === 'AbortError' ? 'timeout' : e.message);
+        return next();
+      });
+    }
+    return next();
+  }
+
+  var BBOX = '18.40,73.72,18.65,73.99';
+
+  /* ── road visual styles ── */
+  function rStyle(hw) {
+    if (hw === 'motorway' || hw === 'motorway_link' || hw === 'trunk' || hw === 'trunk_link')
+      return { color: '#e8534a', weight: 3.5, opacity: 0.92 };
+    if (hw === 'primary' || hw === 'primary_link')
+      return { color: '#f0a500', weight: 2.5, opacity: 0.88 };
+    return { color: '#3b82f6', weight: 1.4, opacity: 0.5 };
+  }
+  function rGroup(hw) {
+    if (hw === 'motorway' || hw === 'motorway_link' || hw === 'trunk' || hw === 'trunk_link') return 'mway';
+    if (hw === 'primary' || hw === 'primary_link') return 'prim';
+    return 'sec';
+  }
+
+  /* ── congestion hotspots from signal density ── */
+  function buildHotspots(sigs) {
+    LG.heat.clearLayers();
+    var grid = {}, C = 0.005;
+    sigs.forEach(function (s) {
+      var k = Math.round(s.lat / C) + '_' + Math.round(s.lon / C);
+      if (!grid[k]) grid[k] = { lat: s.lat, lon: s.lon, n: 0 };
+      grid[k].n++;
+    });
+    Object.keys(grid).forEach(function (k) {
+      var c = grid[k];
+      if (c.n < 2) return;
+      L.circleMarker([c.lat, c.lon], {
+        radius: Math.min(28, 8 + c.n * 5),
+        color: 'transparent', fillColor: '#ff6b35',
+        fillOpacity: Math.min(0.55, 0.15 + c.n * 0.07),
+        weight: 0, interactive: false
+      }).addTo(LG.heat);
+    });
+  }
+
+  /* ── draw way geometries from Overpass response ── */
+  function drawWays(data) {
+    var nm = {};
+    data.elements.forEach(function (el) { if (el.type === 'node') nm[el.id] = el; });
+    var cnt = 0;
+    data.elements.forEach(function (el) {
+      if (el.type !== 'way' || !el.tags || !el.tags.highway) return;
+      var lls = [];
+      (el.nodes || []).forEach(function (id) { var n = nm[id]; if (n) lls.push([n.lat, n.lon]); });
+      if (lls.length < 2) return;
+      var hw = el.tags.highway;
+      var st = rStyle(hw);
+      var pl = L.polyline(lls, { color: st.color, weight: st.weight, opacity: st.opacity, lineCap: 'round', lineJoin: 'round' });
+      if (el.tags.name) pl.bindTooltip(el.tags.name, { direction: 'top', sticky: true });
+      pl.addTo(LG[rGroup(hw)]);
+      cnt++;
+    });
+    return cnt;
+  }
+
+  /* ════════════════════════════════════════════════
+     INITIAL LOAD — sequential Overpass requests
+     1) nodes (signals + bus stops)
+     2) motorways + trunk
+     3) primary roads
+     4) secondary roads
+  ════════════════════════════════════════════════ */
+  function loadNetwork() {
+    setStatus('Loading Pune road network…', true);
+    setProgress(5, 'Connecting to OpenStreetMap Overpass API…');
+
+    var sCnt = 0, bCnt = 0, rCnt = 0;
+
+    var Q_nodes = '[out:json][timeout:30];(\n' +
+      'node["highway"="traffic_signals"](' + BBOX + ');\n' +
+      'node["highway"="bus_stop"](' + BBOX + ');\n' +
+      ');out body;';
+
+    var Q_mway = '[out:json][timeout:35];(\n' +
+      'way["highway"~"^(motorway|motorway_link|trunk|trunk_link)$"](' + BBOX + ');\n' +
+      ');out body;>;out skel qt;';
+
+    var Q_prim = '[out:json][timeout:35];(\n' +
+      'way["highway"~"^(primary|primary_link)$"](' + BBOX + ');\n' +
+      ');out body;>;out skel qt;';
+
+    var Q_sec = '[out:json][timeout:35];(\n' +
+      'way["highway"~"^(secondary|secondary_link)$"](' + BBOX + ');\n' +
+      ');out body;>;out skel qt;';
+
+    /* ── Phase 1: signals & bus stops ── */
+    setProgress(10, 'Fetching traffic signals & bus stops…');
+    opFetch(Q_nodes, 32000)
+      .then(function (nd) {
+        nd.elements.forEach(function (el) {
+          if (el.type !== 'node' || !el.tags) return;
+          var name = el.tags.name || '';
+          if (el.tags.highway === 'traffic_signals') {
+            allSig.push({ lat: el.lat, lon: el.lon, name: name });
+            L.circleMarker([el.lat, el.lon], {
+              radius: 4, color: '#ff4444', fillColor: '#ff4444', fillOpacity: 0.9, weight: 1.5
+            }).bindTooltip('🚦 ' + (name || 'Traffic Signal'), { direction: 'top' }).addTo(LG.sigs);
+            sCnt++;
+          } else if (el.tags.highway === 'bus_stop') {
+            allBus.push({ lat: el.lat, lon: el.lon, name: name });
+            L.circleMarker([el.lat, el.lon], {
+              radius: 3.5, color: '#ffd166', fillColor: '#ffd166', fillOpacity: 0.85, weight: 1.5
+            }).bindTooltip('🚌 ' + (name || 'Bus Stop'), { direction: 'top' }).addTo(LG.bus);
+            bCnt++;
+          }
+        });
+        G('ns-s').textContent = sCnt;
+        G('ns-b').textContent = bCnt;
+        buildHotspots(allSig);
+        setProgress(28, 'Signals & bus stops loaded. Fetching motorways…');
+      })
+      .catch(function (e) {
+        console.warn('Node fetch failed:', e.message);
+        setProgress(28, 'Signals unavailable — loading roads…');
+      })
+
+      /* ── Phase 2: motorways & trunk ── */
+      .then(function () {
+        setProgress(30, 'Fetching motorways & trunk roads…');
+        return opFetch(Q_mway, 35000);
+      }).then(function (d) {
+        var c = drawWays(d); rCnt += c;
+        G('ns-r').textContent = rCnt + '+';
+        setProgress(52, 'Motorways loaded (' + c + '). Fetching primary roads…');
+      }).catch(function (e) {
+        console.warn('Motorway fetch:', e.message);
+        setProgress(52, 'Motorways unavailable — continuing…');
+      })
+
+      /* ── Phase 3: primary roads ── */
+      .then(function () {
+        setProgress(54, 'Fetching primary roads…');
+        return opFetch(Q_prim, 35000);
+      }).then(function (d) {
+        var c = drawWays(d); rCnt += c;
+        G('ns-r').textContent = rCnt + '+';
+        setProgress(76, 'Primary roads loaded (' + c + '). Fetching secondary roads…');
+      }).catch(function (e) {
+        console.warn('Primary fetch:', e.message);
+        setProgress(76, 'Primary roads unavailable — continuing…');
+      })
+
+      /* ── Phase 4: secondary roads ── */
+      .then(function () {
+        setProgress(78, 'Fetching secondary roads…');
+        return opFetch(Q_sec, 35000);
+      }).then(function (d) {
+        var c = drawWays(d); rCnt += c;
+        G('ns-r').textContent = rCnt + '+';
+        setProgress(97, 'Secondary roads loaded (' + c + ').');
+      }).catch(function (e) {
+        console.warn('Secondary fetch:', e.message);
+        setProgress(97, 'Secondary roads unavailable.');
+      })
+
+      /* ── Done ── */
+      .then(function () {
+        G('ns-r').textContent = rCnt > 0 ? rCnt + '+' : '—';
+        G('ns-s').textContent = sCnt > 0 ? sCnt : '—';
+        G('ns-b').textContent = bCnt > 0 ? bCnt : '—';
+        G('progw').style.display = 'none';
+        G('lscr').style.display = 'none';
+        G('ovsec').classList.remove('hidden');
+        setStatus('✓ ' + rCnt + ' roads · ' + sCnt + ' signals · ' + bCnt + ' bus stops — enter a route above');
+      })
+      .catch(function (e) {
+        console.error('Network load error:', e);
+        G('lscr').style.display = 'none';
+        G('ovsec').classList.remove('hidden');
+        setStatus('⚠ Partial data loaded — routing still works');
+      });
+  }
+
+  /* ════════════════════════════════════════════════
+     AUTOCOMPLETE
+  ════════════════════════════════════════════════ */
+  function setupAC(iId, dId) {
+    var inp = G(iId), drop = G(dId);
+    inp.addEventListener('input', function () {
+      clearTimeout(acT[iId]);
+      var q = inp.value.trim();
+      if (q.length < 3) { drop.classList.remove('open'); return; }
+      acT[iId] = setTimeout(function () { fetchAC(q, drop, inp); }, 320);
+    });
+    inp.addEventListener('blur', function () {
+      setTimeout(function () { drop.classList.remove('open'); }, 200);
+    });
+  }
+  function fetchAC(q, drop, inp) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=json' +
+      '&q=' + encodeURIComponent(q + ' Pune India') +
+      '&limit=5&addressdetails=1&bounded=1&viewbox=73.72,18.40,73.99,18.65';
+    fetch(url, { headers: { 'Accept-Language': 'en', 'User-Agent': 'SmartCommutePune/1.0' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        drop.innerHTML = '';
+        if (!data.length) { drop.classList.remove('open'); return; }
+        data.forEach(function (item) {
+          var d = document.createElement('div');
+          d.className = 'aci';
+          var name = (item.namedetails && item.namedetails.name) || item.display_name.split(',')[0];
+          var addr = item.display_name.split(',').slice(1, 3).join(',').trim();
+          d.innerHTML = '<div class="an">' + name + '</div><div class="aa">' + addr + '</div>';
+          d.addEventListener('mousedown', function () {
+            inp.value = name;
+            inp.dataset.lat = item.lat;
+            inp.dataset.lon = item.lon;
+            drop.classList.remove('open');
+          });
+          drop.appendChild(d);
+        });
+        drop.classList.add('open');
+      })
+      .catch(function () { drop.classList.remove('open'); });
+  }
+  setupAC('origin', 'o-ac');
+  setupAC('dest', 'd-ac');
+
+  /* ════════════════════════════════════════════════
+     GEOCODE (fallback when no AC selection)
+  ════════════════════════════════════════════════ */
+  function geocode(q) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=json' +
+      '&q=' + encodeURIComponent(q + ' Pune India') + '&limit=1&addressdetails=1';
+    return fetch(url, { headers: { 'Accept-Language': 'en', 'User-Agent': 'SmartCommutePune/1.0' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.length) return null;
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      });
+  }
+
+  /* ════════════════════════════════════════════════
+     OSRM — multiple alternative routes
+  ════════════════════════════════════════════════ */
+  function fetchRtes(oLa, oLo, dLa, dLo) {
+    var url = 'https://router.project-osrm.org/route/v1/driving/' +
+      oLo + ',' + oLa + ';' + dLo + ',' + dLa +
+      '?overview=full&geometries=geojson&alternatives=true&steps=false';
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('OSRM HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j.routes || !j.routes.length) throw new Error('No route found between these locations');
+        return j.routes;
+      });
+  }
+
+  /* ════════════════════════════════════════════════
+     UTILITIES
+  ════════════════════════════════════════════════ */
+  function hav(a1, o1, a2, o2) {
+    var R = 6371, r = Math.PI / 180;
+    var da = (a2 - a1) * r, doo = (o2 - o1) * r;
+    var a = Math.sin(da / 2) * Math.sin(da / 2) +
+      Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin(doo / 2) * Math.sin(doo / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function bboxFromCoords(coords, pad) {
+    pad = pad || 0.007;
+    var mn0 = Infinity, mx0 = -Infinity, mn1 = Infinity, mx1 = -Infinity;
+    coords.forEach(function (p) {
+      if (p[0] < mn0) mn0 = p[0]; if (p[0] > mx0) mx0 = p[0];
+      if (p[1] < mn1) mn1 = p[1]; if (p[1] > mx1) mx1 = p[1];
+    });
+    return (mn0 - pad).toFixed(5) + ',' + (mn1 - pad).toFixed(5) + ',' +
+           (mx0 + pad).toFixed(5) + ',' + (mx1 + pad).toFixed(5);
+  }
+
+  function scoreRoute(coords, nodes, dk) {
+    var step = Math.max(1, Math.floor(coords.length / 80));
+    var samp = coords.filter(function (_, i) { return i % step === 0; });
+    var s = 0, b = 0;
+    nodes.forEach(function (n) {
+      var near = samp.some(function (p) { return hav(p[0], p[1], n.lat, n.lon) < 0.13; });
+      if (near) { if (n.isSig) s++; else b++; }
+    });
+    var spk = s / Math.max(0.1, dk);
+    var cong, cc;
+    if (spk < 1.5)      { cong = 'Low';  cc = 'clow'; }
+    else if (spk < 3.5) { cong = 'Med';  cc = 'cmed'; }
+    else                { cong = 'High'; cc = 'chi';  }
+    return { s: s, b: b, spk: spk.toFixed(1), cong: cong, cc: cc };
+  }
+
+  /* ════════════════════════════════════════════════
+     ROUTE STYLES
+  ════════════════════════════════════════════════ */
+  var RS = [
+    { color: '#38bdf8', w: 9, tag: 'tf', lbl: '⚡ Fastest'  },
+    { color: '#10b981', w: 7, tag: 'tb', lbl: '⚖ Balanced' },
+    { color: '#a78bfa', w: 7, tag: 'ta', lbl: '🌿 Alt Route' }
+  ];
+
+  /* ════════════════════════════════════════════════
+     RENDER ROUTE CARDS
+  ════════════════════════════════════════════════ */
+  function renderCards(rtes, scores) {
+    var c = G('rcards'); c.innerHTML = '';
+    rtes.forEach(function (r, i) {
+      var st = RS[i] || RS[2], sc = scores[i];
+      var dk = (r.distance / 1000).toFixed(1);
+      var dm = Math.round(r.duration / 60);
+      var dt = dm >= 60 ? Math.floor(dm / 60) + 'h ' + (dm % 60) + 'm' : dm + 'm';
+      var rec = i === 0 && sc.cong !== 'High';
+      var div = document.createElement('div');
+      div.className = 'rc' + (i === 0 ? ' act' : '');
+      div.innerHTML =
+        '<div class="rch">' +
+          '<span class="rtag ' + st.tag + '">' + st.lbl + '</span>' +
+          (rec ? '<span class="chip crec">✓ Recommended</span>' : '') +
+          (i === 0 ? '<span style="font-size:9px;color:var(--ac);font-weight:700" class="sbadge">● Selected</span>' : '') +
+        '</div>' +
+        '<div class="rm">' +
+          '<div class="rs"><span class="rv">' + dk + 'km</span><span class="rl">Distance</span></div>' +
+          '<div class="rs"><span class="rv">' + dt + '</span><span class="rl">Est. time</span></div>' +
+          '<div class="rs"><span class="rv">' + sc.s + '</span><span class="rl">Signals</span></div>' +
+          '<div class="rs"><span class="rv">' + sc.b + '</span><span class="rl">Bus stops</span></div>' +
+        '</div>' +
+        '<div class="chips">' +
+          '<span class="chip ' + sc.cc + '">🚦 ' + sc.cong + ' congestion</span>' +
+          '<span class="chip csig">⚡ ' + sc.spk + '/km</span>' +
+          (sc.b > 0 ? '<span class="chip cbus">🚌 ' + sc.b + ' stops</span>' : '') +
+        '</div>';
+      (function (idx) { div.addEventListener('click', function () { selRoute(idx); }); }(i));
+      c.appendChild(div);
+    });
+  }
+
+  function selRoute(idx) {
+    document.querySelectorAll('.rc').forEach(function (c, i) {
+      c.classList.toggle('act', i === idx);
+      var sb = c.querySelector('.sbadge');
+      if (i === idx) {
+        if (!sb) {
+          var s = document.createElement('span');
+          s.className = 'sbadge';
+          s.style.cssText = 'font-size:9px;color:var(--ac);font-weight:700';
+          s.textContent = '● Selected';
+          c.querySelector('.rch').appendChild(s);
+        }
+      } else if (sb) { sb.remove(); }
+    });
+    rteLayers.forEach(function (l, i) {
+      var base = RS[i] || RS[2];
+      l.setStyle({ opacity: i === idx ? 0.97 : 0.1, weight: i === idx ? base.w + 2 : 3 });
+      if (i === idx) l.bringToFront();
+    });
+    renderIG(lastRtes[idx], lastRtes);
+  }
+
+  function renderIG(r, all) {
+    var dk = (r.distance / 1000).toFixed(2);
+    var dm = Math.round(r.duration / 60);
+    var spd = ((r.distance / 1000) / (r.duration / 3600)).toFixed(0);
+    var maxD = Math.max.apply(null, all.map(function (x) { return x.duration; }));
+    var sav = Math.round((maxD - r.duration) / 60);
+    G('ig').innerHTML =
+      '<div class="ic"><div class="il">Distance</div><div class="iv">' + dk + ' km</div></div>' +
+      '<div class="ic"><div class="il">Est. Time</div><div class="iv">' + dm + ' min</div></div>' +
+      '<div class="ic"><div class="il">Avg Speed</div><div class="iv">' + spd + ' km/h</div></div>' +
+      '<div class="ic"><div class="il">Time Saved</div><div class="iv" style="color:var(--g)">+' + sav + 'm vs slowest</div></div>';
+  }
+
+  /* ════════════════════════════════════════════════
+     PLAN ROUTE
+  ════════════════════════════════════════════════ */
+  function plan() {
+    var oi = G('origin'), di = G('dest');
+    var ot = oi.value.trim(), dt = di.value.trim();
+    if (!ot || !dt) { showErr('Please enter both origin and destination.'); return; }
+
+    /* clear previous route layer only — keep the road network */
+    LG.rtes.clearLayers();
+    LG.pins.clearLayers();
+    rteLayers = [];
+    G('rsec').classList.add('hidden');
+    G('ssec').classList.add('hidden');
+    G('errmsg').style.display = 'none';
+    G('planBtn').disabled = true;
+
+    /* resolve coordinates */
+    var pOrigin = (oi.dataset.lat && parseFloat(oi.dataset.lat))
+      ? Promise.resolve({ lat: parseFloat(oi.dataset.lat), lon: parseFloat(oi.dataset.lon) })
+      : geocode(ot);
+
+    var pDest = (di.dataset.lat && parseFloat(di.dataset.lat))
+      ? Promise.resolve({ lat: parseFloat(di.dataset.lat), lon: parseFloat(di.dataset.lon) })
+      : geocode(dt);
+
+    setStatus('Geocoding locations…', true);
+
+    Promise.all([pOrigin, pDest])
+      .then(function (res) {
+        var o = res[0], d = res[1];
+        if (!o) throw new Error('"' + ot + '" not found in Pune — try a more specific name.');
+        if (!d) throw new Error('"' + dt + '" not found in Pune — try a more specific name.');
+
+        setStatus('Computing routes via OSRM…', true);
+        return Promise.all([Promise.resolve(o), Promise.resolve(d), fetchRtes(o.lat, o.lon, d.lat, d.lon)]);
+      })
+      .then(function (res) {
+        var o = res[0], d = res[1], rtes = res[2];
+        lastRtes = rtes;
+
+        var allC = rtes.map(function (r) {
+          return r.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+        });
+
+        /* fetch signals/stops along primary route bbox */
+        setStatus('Analysing traffic along route…', true);
+        var bb = bboxFromCoords(allC[0]);
+        var Q_rteNodes = '[out:json][timeout:18];(' +
+          'node["highway"="traffic_signals"](' + bb + ');' +
+          'node["highway"="bus_stop"](' + bb + ');' +
+          ');out body;';
+
+        return opFetch(Q_rteNodes, 20000)
+          .catch(function () { return { elements: [] }; })
+          .then(function (nd) {
+            /* build node list with type flag */
+            var nodes = [];
+            nd.elements.forEach(function (el) {
+              if (el.type !== 'node' || !el.tags) return;
+              nodes.push({
+                lat: el.lat, lon: el.lon,
+                isSig: el.tags.highway === 'traffic_signals',
+                name: el.tags.name || ''
+              });
+            });
+
+            /* score every route */
+            var scores = rtes.map(function (r, i) {
+              return scoreRoute(allC[i], nodes, r.distance / 1000);
+            });
+
+            /* draw polylines — all routes, faded except selected */
+            rtes.forEach(function (r, i) {
+              var st = RS[i] || RS[2];
+              var pl = L.polyline(allC[i], {
+                color: st.color, weight: i === 0 ? st.w + 2 : 4,
+                opacity: i === 0 ? 0.97 : 0.12,
+                lineCap: 'round', lineJoin: 'round'
+              }).addTo(LG.rtes);
+              rteLayers.push(pl);
+            });
+
+            /* overlay signals ON the primary route */
+            nodes.filter(function (n) { return n.isSig; }).forEach(function (n) {
+              var onRoute = allC[0].some(function (p) { return hav(p[0], p[1], n.lat, n.lon) < 0.09; });
+              if (!onRoute) return;
+              L.circleMarker([n.lat, n.lon], {
+                radius: 7, color: '#fff', weight: 2, fillColor: '#ff2222', fillOpacity: 1
+              }).bindTooltip('🚦 Signal' + (n.name ? ' · ' + n.name : ''), { direction: 'top' })
+                .addTo(LG.rtes);
+            });
+
+            /* overlay bus stops ON the primary route */
+            nodes.filter(function (n) { return !n.isSig; }).forEach(function (n) {
+              var onRoute = allC[0].some(function (p) { return hav(p[0], p[1], n.lat, n.lon) < 0.07; });
+              if (!onRoute) return;
+              L.circleMarker([n.lat, n.lon], {
+                radius: 6, color: '#fff', weight: 1.5, fillColor: '#ffd166', fillOpacity: 1
+              }).bindTooltip('🚌 Bus stop' + (n.name ? ' · ' + n.name : ''), { direction: 'top' })
+                .addTo(LG.rtes);
+            });
+
+            /* origin / destination markers */
+            var mkO = L.divIcon({ html: '<div style="width:15px;height:15px;background:#10b981;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 12px #10b98199"></div>', iconSize: [15, 15], iconAnchor: [7, 7], className: '' });
+            var mkD = L.divIcon({ html: '<div style="width:15px;height:15px;background:#ef4444;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 12px #ef444499"></div>', iconSize: [15, 15], iconAnchor: [7, 7], className: '' });
+            L.marker([o.lat, o.lon], { icon: mkO }).bindTooltip('📍 ' + ot, { permanent: true, direction: 'top' }).addTo(LG.pins);
+            L.marker([d.lat, d.lon], { icon: mkD }).bindTooltip('🏁 ' + dt, { permanent: true, direction: 'top' }).addTo(LG.pins);
+
+            /* zoom map to primary route */
+            map.fitBounds(rteLayers[0].getBounds(), { padding: [80, 80] });
+
+            /* render sidebar */
+            renderCards(rtes, scores);
+            renderIG(rtes[0], rtes);
+            G('rsec').classList.remove('hidden');
+            G('ssec').classList.remove('hidden');
+            setStatus('✓ ' + rtes.length + ' routes · ' + scores[0].s + ' signals · ' + scores[0].b + ' bus stops on primary route');
+          });
+      })
+      .catch(function (err) {
+        console.error(err);
+        showErr('Error: ' + err.message);
+        setStatus('Route planning failed');
+      })
+      .then(function () {
+        G('planBtn').disabled = false;
+      });
+  }
+
+  /* ════════════════════════════════════════════════
+     CLEAR
+  ════════════════════════════════════════════════ */
+  function clear() {
+    LG.rtes.clearLayers();
+    LG.pins.clearLayers();
+    rteLayers = []; lastRtes = [];
+    G('origin').value = ''; G('dest').value = '';
+    G('origin').dataset.lat = ''; G('dest').dataset.lat = '';
+    G('rsec').classList.add('hidden');
+    G('ssec').classList.add('hidden');
+    G('errmsg').style.display = 'none';
+    map.setView([18.5204, 73.8567], 13);
+    setStatus('Ready — enter a route above');
+  }
+
+  /* ════════════════════════════════════════════════
+     OVERLAY TOGGLES
+  ════════════════════════════════════════════════ */
+  function tR() {
+    showR = !showR;
+    ['mway', 'prim', 'sec'].forEach(function (k) { showR ? map.addLayer(LG[k]) : map.removeLayer(LG[k]); });
+    G('btn-roads').classList.toggle('on', showR);
+  }
+  function tS() {
+    showS = !showS;
+    showS ? map.addLayer(LG.sigs) : map.removeLayer(LG.sigs);
+    G('btn-signals').classList.toggle('on', showS);
+  }
+  function tB() {
+    showB = !showB;
+    showB ? map.addLayer(LG.bus) : map.removeLayer(LG.bus);
+    G('btn-bus').classList.toggle('on', showB);
+  }
+  function tH() {
+    showH = !showH;
+    showH ? map.addLayer(LG.heat) : map.removeLayer(LG.heat);
+    G('btn-heat').classList.toggle('on', showH);
+  }
+
+  /* ── keyboard shortcuts ── */
+  G('origin').addEventListener('keydown', function (e) { if (e.key === 'Enter') plan(); });
+  G('dest').addEventListener('keydown',   function (e) { if (e.key === 'Enter') plan(); });
+
+  /* ── expose to HTML onclick attributes ── */
+  window.APP = { plan: plan, clear: clear, tR: tR, tS: tS, tB: tB, tH: tH };
+
+  /* ── kick off initial network load ── */
+  loadNetwork();
+
+} /* end bootApp */
+</script>
+</body>
+</html>
