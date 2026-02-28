@@ -49,7 +49,7 @@ export function PuneHourlyTrends() {
     const arr = hourly[mode];
     const peakHour = (arr as readonly number[]).reduce(
       (best, v, i) => (v > best.v ? { i, v } : best),
-      { i: 0, v: arr[0] ?? 0 },
+      { i: 0, v: arr[0] ?? 0 } as { i: number; v: number },
     ).i;
 
     const start = Math.max(0, peakHour - 1);
